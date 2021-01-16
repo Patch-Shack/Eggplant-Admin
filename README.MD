@@ -1,1 +1,1 @@
-== Eggplant Admin ==
+= Eggplant Admin =
