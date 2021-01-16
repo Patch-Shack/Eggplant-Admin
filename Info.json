@@ -1,11 +1,11 @@
 {
 	"Version":"1.0",
-	"Info":[
-	"1.0":[
-		"Description":"First release",
-			"Changelog":{
-				"[ First release ]"
-			},
-		],
-	],
+	"Info":{
+		"1.0":{
+			"Description":"First release",
+			"Changelog":[
+				"[ First release ]",
+			],
+		},
+	},
 }
