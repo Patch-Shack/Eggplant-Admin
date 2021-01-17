@@ -7,7 +7,7 @@
 
 -- Run Infinite Yield
 	-- Things for settings :
-local settings_filename = "eggplant.json"
+local settings_filename = "egg.plant"
 	
 	-- Change settings file
 		-- Changes settings file from IY_FE.iy to egg.plant
@@ -16,7 +16,7 @@ local oldreadfile = readfile
 
 if writefile then
 	getfenv().writefile = function(path, contents)
-		local path = path ~= "IY_FE.iy" and path or (path and settings_filename)
+		local path = path ~= "IY_FE.iy" and path o1wr (path and settings_filename)
 		return oldwritefile(path, contents)
 	end
 	
@@ -32,10 +32,7 @@ end
 if writefile then
 	local hs = game:GetService("HttpService")
 	
-	local config_file = settings_filename
-		-- Reads file 'config_file' 
-	local contents = readfile(config_file)
-		--
+	local contents = readfile(settings_filename)
 	local settings = hs:JSONDecode(contents or "{}")
 	
 	settings.currentShade1 = {0, 0.666666686534881591796875, 0}
@@ -47,7 +44,7 @@ if writefile then
 	settings.prefix = "h"
 	
 	if not contents then
-		-- if IY_FE.iy did not exist
+		-- if egg.plant did not exist
 		settings.binds = {}
 		settings.PluginsTable = {}
 		settings.StayOpen = false
@@ -56,9 +53,11 @@ if writefile then
 		settings.aliases = {}
 		settings.WayPoints = {}
 		settings.jLogsEnabled = false
+		
+		-- i do this because these settings are essential for IY to load...
 	end
 	
-	writefile(config_file, hs:JSONEncode(settings))
+	writefile(settings_filename, hs:JSONEncode(settings))
 end
 	--
 	--
