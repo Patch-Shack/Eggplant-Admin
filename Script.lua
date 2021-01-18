@@ -5,6 +5,17 @@
 -- ####  #  #  #    #  ##  #   #   #
 --             #
 
+--[[
+	Useful functions in Infinite Yield's Source code.
+	'notify' 'notify(string: title, string: text, number: duration)' -- Notifies text in a notification with title 'title' which disappears after 'duration' seconds
+	
+	Useful functions in Eggplant Admin.
+	'newnotify' 'newnotify(table: info, string: ...)' -- Like 'notify' but with a notification system that I like more, notifies '...' with a notification with info 'info' (check implementation of newnotify to know how to use 'info')
+	
+	Functions replaced:
+	'newnotify' replaces -> 'notify'
+]]
+
 -- Run Infinite Yield
 	-- Things for settings :
 local settings_filename = "egg.plant"
@@ -370,7 +381,6 @@ local newnotify = function(info, ...)
 		if choosedNotif > #notifications then
 			-- If we cant use a notification from 'notifications' table
 			notif = newnotifframe() -- Create new notification
-			print("NEW NOTIFICATION LOL")
 			
 				-- Insert it into the table 'notifications'
 			local notificationid = #notifications + 1
@@ -406,7 +416,7 @@ local newnotify = function(info, ...)
 		info.title = info.title or "Eggplant Admin"
 		notif.title.Text = info.title
 		
-		-- Change icon
+		-- Change notification icon
 		info.icon = info.icon or "rbxassetid://0"
 		notif.icon.Image = info.icon
 		
@@ -450,6 +460,54 @@ notify = function(txt1, txt2, duration)
 end
 		--
 	-- </New notify system>
+	
+	-- File browser
+local fb = {}
+		-- <File browser window>
+		-- File browser window border
+fb.winborder = new("Frame", PARENT, {
+	Size = UDim2.fromOffset(400, 20),
+	BorderSizePixel = 0,
+	BackgroundColor3 = color.shade1,
+	Visible = false,
+})
+setShade1(fb.winborder)
+makeDraggable(fb.winborder)
+
+		-- File browser window background
+fb.winbg = new("Frame", fb.winborder, {
+	Size = UDim2.new(1, 0, 0, 300),
+	Position = UDim2.fromScale(0, 1),
+	BorderSizePixel = 0,
+	BackgroundColor3 = color.shade2,
+})
+setShade2(fb.winbg)
+
+		-- File browser window title
+fb.wintitle = new("TextLabel", fb.winborder, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Text = "File browser",
+	TextColor3 = color.text1,
+})
+setText1(fb.wintitle)
+	
+		-- File browser window close button
+fb.winclose = new("ImageButton", fb.winborder, {
+	BackgroundTransparency = 1,
+	Position = UDim2.fromScale(1),
+	AnchorPoint = Vector2.new(1),
+	Image = "rbxassetid://3192543734",
+	Size = UDim2.fromOffset(20, 20),
+})
+		-- </File browser window>
+
+fb.requestFile = function(self)
+	self.winborder.Visible = true
+end
+
+fb:requestFile()
+	-- </File browser>
 
 -- Modifications
 	--
