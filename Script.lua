@@ -461,7 +461,10 @@ end
 		--
 	-- </New notify system>
 	
-	-- File browser
+	--[[ File browser
+
+FILE BROWSER IS CANCELLED FOR NOW
+
 local fb = {}
 		-- <File browser window>
 		-- File browser window border
@@ -501,13 +504,16 @@ fb.winclose = new("ImageButton", fb.winborder, {
 	Size = UDim2.fromOffset(20, 20),
 })
 		-- </File browser window>
+		
+		-- <File browser files list>
+		-- </Files browser files list>
 
 fb.requestFile = function(self)
 	self.winborder.Visible = true
 end
 
 fb:requestFile()
-	-- </File browser>
+	]]-- </File browser>
 
 -- Modifications
 	--
