@@ -16,7 +16,7 @@ local oldreadfile = readfile
 
 if writefile then
 	getfenv().writefile = function(path, contents)
-		local path = path ~= "IY_FE.iy" and path o1wr (path and settings_filename)
+		local path = path ~= "IY_FE.iy" and path or (path and settings_filename)
 		return oldwritefile(path, contents)
 	end
 	
@@ -199,12 +199,11 @@ local notifsbg = new("Frame", PARENT, {
 })
 
 local notifsbglist = new("UIListLayout", notifsbg, {
-	Padding = UDim.new(0, 5),
+	Padding = UDim.new(0, 0),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 })
 
-local notifications = {}
 local newnotifframe = function()
 	-- Used by the function 'newnotifframe'
 	-- used to create a notification
@@ -290,14 +289,6 @@ local newnotifframe = function()
 		ts:Create(notif.icon, animInfo, {ImageTransparency = 0}),
 	}
 	
-	notif.show = function(self, height, width)
-		for i, v in ipairs(self.showAnimTweens) do
-			v:Play()
-		end
-		self.bg.Size = UDim2.fromOffset(width, 0)
-		self.bg:TweenSize(UDim2.fromOffset(width, height), animInfo.EasingDirection, animInfo.EasingStyle, animInfo.Time)
-	end
-	
 		-- Create animation to hide notification
 	notif.hideAnimTweens = {
 		ts:Create(notif.notif, animInfo, {BackgroundTransparency = 1}),
@@ -307,27 +298,44 @@ local newnotifframe = function()
 		ts:Create(notif.icon, animInfo, {ImageTransparency = 1}),
 	}
 	
+	-- Functionality
+	notif.closedBin = new("BindableEvent")
+	notif.closed = notif.closedBin.Event
+	notif.shown = false
+	
+	notif.closeButton.Activated:Connect(function()
+		notif:hide()
+		notif.closedBin:Fire()
+	end)
+	
+	notif.show = function(self, height, width)
+		-- Shows notification
+		for i, v in ipairs(self.showAnimTweens) do
+			v:Play()
+		end
+		self.bg.Size = UDim2.fromOffset(width, 0)
+		self.bg:TweenSize(UDim2.fromOffset(width, height), animInfo.EasingDirection, animInfo.EasingStyle, animInfo.Time)
+		notif.shown = true
+	end
+	
 	notif.hide = function(self)
+		-- Hides notification
 		for i, v in ipairs(self.hideAnimTweens) do
 			v:Play()
 		end
 		self.bg:TweenSize(UDim2.fromOffset(self.bg.AbsoluteSize.X, 0), animInfo.EasingDirection, animInfo.EasingStyle, animInfo.Time)
+		notif.shown = false
 	end
 	
-	-- Functionality
-	notif.closeButton.Activated:Connect(function()
-		notif:hide()
-	end)
-	
 	-- Add notification to 'notifications' table
-	local notificationid = #notifications + 1
-	notif.id = notificationid
-	table.insert(notifications, notif)
-	
-	return setmetatable({}, {
-		__index = notifications[notificationid]
-	})
+	return notif
 end
+
+local notifications = {} -- Stores pre made notifications
+
+local currentNotifications = 0 -- How many notifications are on screen
+local aliveNotifications = 0 -- How many of these notifications are still open
+			-- ^^ This is to optimize the notification system
 
 local newnotify = function(info, ...)
 	-- A function like 'notify' (in inf yield source code)
@@ -342,7 +350,35 @@ local newnotify = function(info, ...)
 	--	}
 	
 	coroutine.wrap(function(info, args) -- I make this a coroutine cuz I can yield the main thread if this function is ran
-		local notif = newnotifframe() -- Create notification
+		currentNotifications = currentNotifications + 1
+		aliveNotifications = aliveNotifications + 1
+		local choosedNotif = currentNotifications
+		
+		local notif
+		
+		if choosedNotif > #notifications then
+			-- If we cant use a notification from 'notifications' table
+			notif = newnotifframe() -- Create new notification
+			print("NEW NOTIFICATION LOL")
+			
+				-- Insert it into the table 'notifications'
+			local notificationid = #notifications + 1
+			notif.id = notificationid
+			table.insert(notifications, notif)
+				--
+			
+				-- And make it work with the 'notifications' table good
+			notif.closed:Connect(function()
+				if aliveNotifications == currentNotifications then
+					-- If its the last notification
+					currentNotifications = currentNotifications - 1
+				end
+				aliveNotifications = aliveNotifications - 1
+			end)
+				--
+		else
+			notif = notifications[choosedNotif]
+		end
 		
 		-- Change notification text
 		local notiftext = ""
@@ -414,14 +450,22 @@ newCmd("roast", {}, "roast [plr] [swear/notswear]", "Roasts [plr]", function(arg
         notify("Unable to find player " .. args[1])
         return
     end
+	
+	
     
     sayremote:FireServer(roast[1] .. player .. roast[2], "All")
 end)
-
-newCmd("bye", {}, "bye", "bye", function()
-	PARENT:Destroy()
-end)
 		-- </Roast>
+	
+		-- <Anchor, Unanchor>
+newCmd("anchor", {}, "anchor", "Makes your player unmovable", function(args, caller)
+	caller.Character.HumanoidRootPart.Anchored = true
+end)
+
+newCmd("unanchor", {}, "unanchor", "Makes your player unmovable", function(args, caller)
+	caller.Character.HumanoidRootPart.Anchored = false
+end)
+		--
 	-- </Commands>
 	
 	-- Holder modifications
