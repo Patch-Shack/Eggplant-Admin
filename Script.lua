@@ -79,6 +79,12 @@ getfenv().wait = oldwait
 	--
 
 -- Useful stuff
+	-- Making things draggable
+local makeDraggable = function(frame)
+	dragGUI(frame)
+end
+	--
+	
 	-- Adding things to color pallete easily
 		-- Inf Yield has a table called shade1 which stores every instance that uses the color 'currentShade1'
 		-- same with shade2, shade3, text1, text2 & scroll
@@ -438,13 +444,12 @@ local newnotify = function(info, ...)
 	end)(info, {...})
 end
 
-newnotify({icon = eggplant_icon_id, duration = 5}, "Hi")
 		-- Replace the 'notify' function with 'newnotify'
 notify = function(txt1, txt2, duration)
 	newnotify({title = "Infinite Yield"}, txt1, txt2)
 end
 		--
-	--
+	-- </New notify system>
 
 -- Modifications
 	--
