@@ -299,13 +299,13 @@ local newnotifframe = function()
 	}
 	
 	-- Functionality
-	notif.closedBin = new("BindableEvent")
+	notif.closedBin = new("BindableEvent") -- an event called when notification is hided closed(byButton), byButton is true if it was closed by button
 	notif.closed = notif.closedBin.Event
 	notif.shown = false
 	
 	notif.closeButton.Activated:Connect(function()
 		notif:hide()
-		notif.closedBin:Fire()
+		notif.closedBin:Fire(true)
 	end)
 	
 	notif.show = function(self, height, width)
@@ -325,6 +325,11 @@ local newnotifframe = function()
 		end
 		self.bg:TweenSize(UDim2.fromOffset(self.bg.AbsoluteSize.X, 0), animInfo.EasingDirection, animInfo.EasingStyle, animInfo.Time)
 		notif.shown = false
+	end
+	
+	notif.close = function(self)
+		self:hide()
+		self.closedBin:Fire()
 	end
 	
 	-- Add notification to 'notifications' table
@@ -405,10 +410,35 @@ local newnotify = function(info, ...)
 		
 		wait() -- I do this to fix some tween issues that I dont know why they happen
 		notif:show(info.height, info.width)
+		
+		-- Make so it dissapears after info.duration time
+		if info.duration then
+			local timer = info.duration
+			local lastTimer
+			local loop
+			loop = game:GetService("RunService").Heartbeat:Connect(function(dt)
+				timer = timer - dt
+				
+				-- Change notif text
+				local roundTimer = math.ceil(timer)
+				if roundTimer ~= lastTimer then
+					lastTimer = roundTimer
+					notif.title.Text = info.title .. " [" .. tostring(lastTimer) .. "]"
+				end
+				
+				-- Close notif when time passed
+				if not notif.shown then loop:Disconnect() end -- Disconnect event if notification was closed before the time passed
+				if timer <= 0 then
+					loop:Disconnect()
+					notif.title.Text = info.title -- restore title
+					notif:close()
+				end
+			end)
+		end
 	end)(info, {...})
 end
 
-newnotify({icon = eggplant_icon_id}, "Hi")
+newnotify({icon = eggplant_icon_id, duration = 5}, "Hi")
 		-- Replace the 'notify' function with 'newnotify'
 notify = function(txt1, txt2, duration)
 	newnotify({title = "Infinite Yield"}, txt1, txt2)
