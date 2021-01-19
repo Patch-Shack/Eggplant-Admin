@@ -10,7 +10,8 @@
 	'notify' 'notify(string: title, string: text, number: duration)' -- Notifies text in a notification with title 'title' which disappears after 'duration' seconds
 	
 	Useful functions in Eggplant Admin.
-	'newnotify' 'newnotify(table: info, string: ...)' -- Like 'notify' but with a notification system that I like more, notifies '...' with a notification with info 'info' (check implementation of newnotify to know how to use 'info')
+	'newnotify' 'void newnotify(table: info, string: ...)' -- Like 'notify' but with a notification system that I like more, notifies '...' with a notification with 'info' (check implementation of newnotify to know how to use 'info')
+	'makewindow' 'table makewindow(table: info, string: title)' -- Creates a new window ready to be used, returns a table to manage the window (check implementation of makewindow to know how to use 'info' and to see what returns)
 	
 	Functions replaced:
 	'newnotify' replaces -> 'notify'
@@ -155,6 +156,259 @@ local new = function(class, parent, ...)
 	return instance
 end
 	--
+	
+	-- Creating windows
+local makewindow = function(info, title)
+	--[[ 'info' should be like this
+		{
+			width = 300, -- window width
+			height = 300, -- window height
+			not_draggable = false, -- if the window should not be draggable
+			disable_close = false, -- disables close button
+			disable_min = false, -- disables min button
+		}
+	]]
+	
+	--[[ returns a table that look like this
+		{
+			-- Attributes
+			minimized = false, -- Window is minimized
+			closeButton = icon, -- closeButton is a button added with the 'addIcon' function and its stored on this variable, check 'addIcon'
+			minButton = icon, -- same as closeButton but with the minimize button
+			width = 100, -- Window width
+			height = 100, -- Window height
+			shown = true, -- If window is not hidded
+			
+			-- Methods
+			add(instance), -- Parents instance to the window (so you can add buttons) (also, it returns the instance you gave as param)
+			changeTitle(newTitle), -- Changes window title to 'newTitle'
+			hide(), -- Hides window
+			show(), -- Shows window
+			minimize(), -- Minimizes window
+			unminimize(), -- Unminimizes window
+			changeWidth(width), -- Changes window's width to 'width'
+			changeHeight(height), -- Changes window's height to 'height'
+			toggle(), -- Minimizes/Unminimizes window
+			addIcon(assetId), -- Adds a new 'assetId' icon to the window, returns a table that looks like this
+							{
+								-- Attributes
+								bg = Frame, -- A frame 'button' is parented to
+								button = ImageButton, -- The icon image button
+								
+								-- Methods
+								remove(), -- Removes the icon from the window
+								readd(), -- ReAdds the icon to the window
+								changeIcon(assetId), -- Changes icon's image to 'assetId'
+								createTween(info, goals), -- Creates a tween of the icon and returns it (using TweenService:Create('info', 'goals'))
+								-- Events
+								onClicked(), -- Fired when the icon is clicked
+							}
+			
+			-- Events
+			onHide(), -- Fired when window gets hided
+			onShow(), -- Fired when window gets show
+			onClosed(), -- Fired when close button gets clicked
+			onMinimized(), -- Fired when minimize button gets clicked
+		}
+	]]
+	
+	info = info or {}
+	info.width = info.width or 300
+	info.height = info.height or 100
+	info.not_draggable = false
+	
+	local win = {}
+	win.width = info.width
+	win.height = info.height
+	
+		-- Window border
+	win.border = new("Frame", PARENT, {
+		Size = UDim2.fromOffset(win.width, 20),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color.shade1,
+	})
+	setShade1(win.border)
+	
+	if not info.not_draggable then
+		makeDraggable(win.border)
+	end
+	
+		-- Window title
+	win.title = new("TextLabel", win.border, {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = title or "Unnamed window",
+		TextColor3 = color.text1,
+	})
+	setText1(win.title)
+	
+	win.changeTitle = function(self, title)
+		self.title.Text = title
+	end
+	
+		-- Window icons
+	win.icons = new("Frame", win.border, {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+	})
+	
+	win.iconsLayout = new("UIListLayout", win.icons, {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		FillDirection = Enum.FillDirection.Horizontal,
+	})
+	
+	win.iconsAmount = 0
+	win.addIcon = function(self, assetId)
+		self.iconsAmount = self.iconsAmount + 1
+		
+		local icon = {}
+		icon.parent = self
+		
+		icon.bg = new("Frame", self.icons, {
+			BackgroundTransparency = 1,
+			LayoutOrder = 0 - self.iconsAmount,
+			Size = UDim2.fromOffset(20, 20),
+		})
+		
+		icon.button = new("ImageButton", icon.bg, {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Image = assetId,
+		})
+		
+		icon.remove = function(self)
+			self.bg.Parent = nil
+		end
+		
+		icon.readd = function(self)
+			self.bg.Parent = self.parent.icons
+		end
+		
+		icon.changeIcon = function(self, assetId)
+			self.button.Image = assetId
+		end
+		
+		icon.tween = function(self, info, goals)
+			return game:GetService("TweenService"):Create(self.button, info, goals)
+		end
+		
+		icon.onClicked = icon.button.Activated
+		
+		return icon
+	end
+	
+		-- Window background
+	win.behindbg = new("Frame", win.border, {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, win.height),
+		Position = UDim2.fromScale(0, 1),
+		ClipsDescendants = true,
+	})
+			-- Minimize / Unminimize
+	local ts = game:GetService("TweenService")
+	local animInfo = TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	win.minAnim = ts:Create(win.behindbg, animInfo, {Size = UDim2.new(1, 0, 0, 0)})
+	win.unminAnim = ts:Create(win.behindbg, animInfo, {Size = UDim2.new(1, 0, 0, win.height)})
+	
+	win.minimized = false
+	win.minimize = function(self)
+		if not self.minimized then
+			-- If window was unminimized
+			self.minAnim:Play()
+			self.minimized = true
+		end
+	end
+	
+	win.unminimize = function(self)
+		if self.minimized then
+			-- If window was minimized
+			self.unminAnim:Play()
+			self.minimized = false
+		end
+	end
+	
+	win.toggle = function(self)
+		self.minimized = not self.minimized
+		
+		if self.minimized then
+			self.minAnim:Play()
+		else
+			self.unminAnim:Play()
+		end
+	end
+			-- </Minimize / Unminimize>
+	
+	win.bg = new("Frame", win.behindbg, {
+		BorderSizePixel = 0,
+		BackgroundColor3 = color.shade2,
+		Size = UDim2.new(1, 0, 0, win.height),
+	})
+	setShade2(win.bg)
+	
+	win.add = function(self, obj)
+		obj.Parent = self.bg
+		return obj
+	end
+	
+		-- Set width/height
+	win.setWidth = function(self, width)
+		self.width = width
+		
+		self.border.Size = UDim2.fromOffset(width, 20)
+	end
+	
+	win.setHeight = function(self, height)
+		self.height = height
+		
+		self.bg.Size = UDim2.new(1, 0, 0, win.height)
+		
+		if not self.minimized then
+			self.behindbg.Size = UDim2.new(1, 0, 0, win.height)
+		end
+	end
+	
+		-- Hide / show
+	win.shown = true
+	
+	win.hide = function(self)
+		win.shown = false
+		self.border.Visible = false
+	end
+	
+	win.show = function(self)
+		self.border.Visible = true
+		win.shown = true
+	end
+	
+		-- Minimize & close button
+	win.closeButton = win:addIcon("rbxassetid://3192543734")
+	win.closeButton.onClicked:Connect(function()
+		win:hide()
+	end)
+	if info.disable_close then
+		win.closeButton:remove()
+	end
+	
+	win.minButton = win:addIcon("rbxassetid://3192533593")
+	win.minBtnAnim = win.minButton:tween(animInfo, {Rotation = 180})
+	win.unminBtnAnim = win.minButton:tween(animInfo, {Rotation = 0})
+	win.minButton.onClicked:Connect(function()
+		win:toggle()
+		
+		if win.minimized then
+			win.minBtnAnim:Play()
+		else
+			win.unminBtnAnim:Play()
+		end
+	end)
+	if info.disable_min then
+		win.minButton:remove()
+	end
+	
+	return win
+end
+	-- </Creating windows>
 
 	-- Adding eggplant icon to things
 local eggplant_icon_id = "rbxassetid://6245615283"
