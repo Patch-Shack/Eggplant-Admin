@@ -8,13 +8,17 @@
 --[[
 	Useful functions in Infinite Yield's Source code.
 	'notify' 'notify(string: title, string: text, number: duration)' -- Notifies text in a notification with title 'title' which disappears after 'duration' seconds
+	'dragGUI' 'dragGUI(frame)' -- Makes 'frame' draggable
+	'makeSettingsButton' 'makeSettingsButton(name, icon)' -- Creates a new button intended to be put into Infinite Yield settings with name 'name' and icon 'icon'
 	
 	Useful functions in Eggplant Admin.
 	'newnotify' 'void newnotify(table: info, string: ...)' -- Like 'notify' but with a notification system that I like more, notifies '...' with a notification with 'info' (check implementation of newnotify to know how to use 'info')
-	'makewindow' 'table makewindow(table: info, string: title)' -- Creates a new window ready to be used, returns a table to manage the window (check implementation of makewindow to know how to use 'info' and to see what returns)
+	'makewindow' 'table makewindow(table: info, string: title)' -- Creates a new window ready to be used, returns a table to manage the window (check implementation of makewindow to know how to make use of 'info' and to see what returns)
+	'addSettingsButton' 'addSettingsButton(name, icon)' -- Similar to 'makeSettingsButton' but easier to use, returns a table to manage the button (check implementation of addSettingsButton to see what returns)
 	
 	Functions replaced:
 	'newnotify' replaces -> 'notify'
+	'makeDraggable' replaces -> 'dragGUI'
 ]]
 
 -- Run Infinite Yield
@@ -51,7 +55,7 @@ if writefile then
 	settings.currentShade2 = {0.666666686534881591796875, 0, 1}
 	settings.currentShade3 = {0.666666686534881591796875, 0, 1}
 	settings.currentText1 = {1, 1, 1}
-	settings.currentText2 = {0, 0, 0}
+	settings.currentText2 = {1, 1, 1}
 	settings.currentScroll = {0.3058823645114898681640625,0.3058823645114898681640625,0.3098039329051971435546875}
 	settings.prefix = "h"
 	
@@ -768,6 +772,105 @@ end
 
 fb:requestFile()
 	]]-- </File browser>
+
+	-- <New settings menu>
+		-- Clear everything on 'SettingsHolder'
+SettingsHolder:ClearAllChildren()
+SettingsHolder.Position = UDim2.fromOffset(0, 10)
+		--
+local SettingsHolderList = new("UIListLayout", SettingsHolder, {
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center
+})
+
+local SettingsItems = 0
+
+local makeSettingsFrame = function()
+	SettingsItems = SettingsItems + 1
+	
+	return new("Frame", SettingsHolder, {
+		LayoutOrder = SettingsItems,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(230, 25),
+	})
+end
+
+local addSettingsButton = function(name, icon)
+	--[[
+		Returns
+		{
+			-- Methods
+			remove(), -- Removes the button
+			readd(), -- ReAdds the button
+			changeText(text), -- Changes button text to 'text'
+			changeIcon(assetId), -- Changes button icon to 'assetId'
+			
+			-- Events
+			onClicked(), -- Fired when the button gets clicked
+		}
+	]]
+	
+	local button = {}
+	
+	button.frame = makeSettingsFrame()
+	
+	button.button = new("TextButton", button.frame, {
+		Size = UDim2.fromScale(1, 1),
+		BorderSizePixel = 0,
+		Text = "",
+		BackgroundColor3 = color.shade2,
+	})
+	setShade2(button)
+	
+	button.icon = new("ImageLabel", button.button, {
+		Size = UDim2.fromOffset(25, 25),
+		BackgroundTransparency = 1,
+		Image = icon,
+	})
+	
+	button.text = new("TextLabel", button.button, {
+		Size = UDim2.new(1, -25, 1, 0),
+		Position = UDim2.fromScale(1),
+		AnchorPoint = Vector2.new(1),
+		TextColor3 = color.text2,
+		Text = name,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	setText2(text)
+	
+	button.remove = function(self)
+		self.frame.Parent = nil
+	end
+	
+	button.readd = function(self)
+		self.frame.Parent = SettingsHolder
+	end
+	
+	button.changeText = function(self, text)
+		self.text.Text = text
+	end
+	
+	button.changeIcon = function(self, assetId)
+		self.icon.Image = assetId
+	end
+	
+	button.onClickedBin = new("BindableEvent")
+	button.onClicked = button.onClickedBin.Event
+	
+	button.button.Activated:Connect(function()
+		button.onClickedBin:Fire()
+	end)
+	
+	return button
+end
+
+local button = addSettingsButton("Close Infinite Yield", "rbxassetid://3192543734")
+
+button.onClicked:Connect(function()
+	newnotify({duration = 3}, "Button clicked")
+end)
+	-- </New settings menu>
 
 -- Modifications
 	--
